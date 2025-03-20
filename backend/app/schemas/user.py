@@ -1,5 +1,7 @@
-from pydantic import BaseModel, ConfigDict
+from typing import List
 
+from pydantic import BaseModel, ConfigDict
+from sqlalchemy.orm import Mapped
 
 class UserBase(BaseModel):
     username: str
@@ -12,15 +14,24 @@ class UserBase(BaseModel):
     is_active: bool
 
 
-class UserPublic(UserBase):
+class UserSimple(UserBase):
     model_config = ConfigDict(from_attributes=True)
     id: int
+
+
+class UserPublic(UserSimple):
+    accepted_pollutions: List["PollutionSimple"] = []
+    pollutions: List["PollutionSimple"] = []
+    points: int
+
 
 class UserCreate(UserBase):
     password: str
 
+
 class UserUpdate(UserBase):
     ...
+
 
 class UserUpdateMe(BaseModel):
     username: str | None = None
@@ -29,6 +40,10 @@ class UserUpdateMe(BaseModel):
     last_name: str | None = None
     age: int | None = None
 
+
 class UpdatePassword(BaseModel):
     current_password: str
     new_password: str
+
+from app.schemas.pollution import PollutionSimple
+UserBase.update_forward_refs()

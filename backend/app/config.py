@@ -18,5 +18,10 @@ class Settings(BaseSettings):
     BASE_DIR: Path = Path(__file__).resolve().parent
     MEDIA_URL: str = "media"
     MEDIA_ROOT: Path = BASE_DIR / MEDIA_URL
+    STATIC_URL: str = "static"
+    STATIC_ROOT: Path = BASE_DIR / STATIC_URL
+    HOST: str = "localhost:8000"
+    PROTO: str = "http"
+    LOG_LEVEL: str = "DEBUG"
 
 settings = Settings()

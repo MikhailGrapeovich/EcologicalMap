@@ -9,16 +9,20 @@ from app.schemas.auth import TokenPayload
 from jwt.exceptions import InvalidTokenError
 from pydantic import ValidationError
 from app.crud.user import get_user
-from app.exeptions import IncorrectUsernameOrPasswordException, UserInactiveException, UserNotFound, AuthErrorException, ErrorNoPrivilegesException
+from app.exeptions import IncorrectUsernameOrPasswordException, UserInactiveException, UserNotFound, AuthErrorException, \
+    ErrorNoPrivilegesException
 from app.utils.auth import ACCESS_TOKEN_ALGORITHM
-
+import logging
+logger = logging.getLogger(__name__)
 reusable_oauth2 = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/login/access-token")
 TokenDep = Annotated[str, Depends(reusable_oauth2)]
 
-async def get_current_user(session: SessionDep, token: TokenDep)-> User:
+
+async def get_current_user(session: SessionDep, token: TokenDep) -> User:
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=ACCESS_TOKEN_ALGORITHM)
         token_data = TokenPayload(**payload)
+        logger.info(f"{token_data}")
         if token_data.sub is None:
             raise InvalidTokenError
     except(InvalidTokenError, ValidationError):
@@ -29,11 +33,15 @@ async def get_current_user(session: SessionDep, token: TokenDep)-> User:
     elif not user.is_active:
         raise UserInactiveException
     return user
+
+
 CurrentUser = Annotated[User, Depends(get_current_user)]
 
-async def get_current_superuser(current_user: CurrentUser)-> User:
+
+async def get_current_superuser(current_user: CurrentUser) -> User:
     if not current_user.is_superuser:
         raise ErrorNoPrivilegesException
     return current_user
+
 
 CurrentSuperUser = Annotated[User, Depends(get_current_user)]
