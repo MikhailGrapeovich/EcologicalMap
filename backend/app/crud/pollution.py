@@ -3,12 +3,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import app.schemas.pollution as schemas_pollution
 from app.models import Pollution
 from app.utils.auth import get_password_hash
-
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 
 
 async def get_pollution(session: AsyncSession, pollution_id: int) -> Pollution:
-    pollution = await session.get(Pollution, pollution_id)
+    pollution = (await session.execute(select(Pollution).options(selectinload(Pollution.performers)).where(Pollution.id == pollution_id))).scalar_one_or_none()
     if pollution is None:
         raise HTTPException(404, "Pollution not found.")
     return pollution

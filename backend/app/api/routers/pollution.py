@@ -144,15 +144,16 @@ async def resolve_pollution(pollution_id: int, session: SessionDep):
 
     return db_pollution
 
-"""
-@router.post("/pollutions/{pollution_id}/add_performers", response_model=PollutionPublic, summary="Add performers to a pollution")
-async def add_performers(pollution_id: int, user_ids: List[int], db: Session = Depends(get_db_session)):
-    #Adds a list of users as performers to a pollution.
-    db_pollution = db.query(Pollution).filter(Pollution.id == pollution_id).first()
+
+@router.post("/{pollution_id}/add_performers", response_model=PollutionPublic, summary="Add performers to a pollution")
+async def add_performers(pollution_id: int, user_ids: List[int], db:SessionDep):
+    """Adds a list of users as performers to a pollution."""
+    db_pollution = await crud_pollution.get_pollution(db, pollution_id)
     if not db_pollution:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pollution not found")
+
     for user_id in user_ids:
-        user = db.query(User).filter(User.id == user_id).first()
+        user = await db.get(User, user_id)  #await db.query(User).filter(User.id == user_id).first()
         if not user:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"User with id {user_id} not found")
 
@@ -162,6 +163,30 @@ async def add_performers(pollution_id: int, user_ids: List[int], db: Session = D
     db.add(db_pollution)
     await db.commit()
     await db.refresh(db_pollution)
-    
+
     return db_pollution
-"""
+
+
+@router.post("/{pollution_id}/join_performer", response_model=PollutionPublic, summary="Join a pollution as a performer")
+async def join_performer(pollution_id: int, db: SessionDep,
+                         current_user: CurrentUser #Получаем текущего пользователя
+                        ):
+    """Allows a user to join a pollution as a performer."""
+    db_pollution = await crud_pollution.get_pollution(db, pollution_id)
+    if not db_pollution:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pollution not found")
+
+    user = current_user  # Используем текущего пользователя
+
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    if user in db_pollution.performers:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User is already a performer for this pollution")
+
+    db_pollution.performers.append(user)
+    db.add(db_pollution)
+    await db.commit()
+    await db.refresh(db_pollution)
+
+    return db_pollution
